@@ -13,8 +13,8 @@ export default function NavLink(props: NavLinkProps) {
 	return (
 		<PureNavLink
 			{...props}
-			className="text-blue-700 underline hover:text-blue-900"
-			classNameActive="text-gray-800 hover:text-black no-underline"
+			className="text-rose-300 underline hover:text-rose-500"
+			classNameActive="text-rose-300"
 		/>
 	)
 }

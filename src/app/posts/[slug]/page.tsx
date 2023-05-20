@@ -1,9 +1,40 @@
-import { MDXRemote } from "next-mdx-remote/rsc"
-import { getContent } from "./server"
+import { compileMDX } from "next-mdx-remote/rsc"
+import { notFound } from "next/navigation"
+import { getContent } from "./api/route"
 
-export default async function Home({ params }) {
-	const source = await getContent(params.slug)
+type PageProps = {
+	params: {
+		slug: string
+	}
+}
 
-	// @ts-expect-error Async Server Component
-	return <MDXRemote source={source} />
+export default async function PostSlugPage({
+	params,
+}: PageProps) {
+	const { data, status } = await getContent(params.slug)
+	if (status === 404 || data == undefined) {
+		notFound()
+	}
+
+	const { frontmatter, content } = await compileMDX<{
+		title?: string
+	}>({
+		source: data,
+		options: {
+			parseFrontmatter: true,
+		},
+	})
+
+	return (
+		<>
+			<article>
+				<header>
+					<h1 className="font-bold pb-2 text-2xl">
+						{frontmatter.title}
+					</h1>
+				</header>
+				<div>{content}</div>
+			</article>
+		</>
+	)
 }

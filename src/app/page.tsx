@@ -1,9 +1,34 @@
 import Link from "next/link"
 import { format as formatDate } from "date-fns"
 import { Fragment } from "react"
+import { getPostList } from "./posts/api/route"
 
-export default async function HomePage() {
-	const posts = await getPosts()
+type Props = {
+	params: {
+		limit: string
+		offset: string
+	}
+}
+
+export default async function HomePage(props: Props) {
+	// const posts = await getPosts()
+
+	const limit = (() => {
+		const value = Number(props.params.limit)
+		return isNaN(value) ? 5 : value
+	})()
+	const offset = (() => {
+		const value = Number(props.params.offset)
+		return isNaN(value) ? 0 : value
+	})()
+	const { data: posts, status } = await getPostList({
+		limit,
+		offset,
+	})
+
+	if (status !== 200 || posts == null) {
+		throw new Error(`Could not load post data`)
+	}
 
 	return (
 		<>
@@ -38,13 +63,16 @@ function Post({ post }: { post: PostHome }) {
 			>
 				<header className="mb-2">
 					<h2 className="text-2xl font-bold text-rose-300">
-						{post.name}
+						{post.title}
 					</h2>
 					<small className="text-sm italic text-gray-200">
-						{formatDate(new Date(post.date), "d MMM yyyy")}
+						{formatDate(
+							new Date(post.published_at),
+							"d MMM yyyy"
+						)}
 					</small>
 				</header>
-				<p>{post.flavorText}</p>
+				<p>{post.flavor_text}</p>
 			</Link>
 		</article>
 	)
@@ -52,51 +80,51 @@ function Post({ post }: { post: PostHome }) {
 
 type PostHome = {
 	slug: string
-	name: string
-	flavorText: string
-	date: string
+	title: string
+	flavor_text: string
+	published_at: string
 }
 
 async function getPosts(): Promise<PostHome[]> {
 	return [
 		{
 			slug: "npm-audit",
-			name: "npm audit: Broken by Design",
+			title: "npm audit: Broken by Design",
 			flavorText:
 				"Found 99 vulnerabilities (84 moderately irrelevant, 15 highly irrelevant)",
-			date: new Date().toISOString(),
+			published_at: new Date().toISOString(),
 		},
 		{
 			slug: "memo",
-			name: "Before You memo()",
+			title: "Before You memo()",
 			flavorText:
 				"Rendering optimizations that come naturally.",
-			date: new Date().toISOString(),
+			published_at: new Date().toISOString(),
 		},
 		{
 			slug: "wet",
-			name: "The WET Codebase",
+			title: "The WET Codebase",
 			flavorText: "Come waste your time with me.",
-			date: new Date().toISOString(),
+			published_at: new Date().toISOString(),
 		},
 		{
 			slug: "clean-code",
-			name: "Goodbye, Clean Code",
+			title: "Goodbye, Clean Code",
 			flavorText:
 				"Let clean code guide you. Then let it go.",
-			date: new Date().toISOString(),
+			published_at: new Date().toISOString(),
 		},
 		{
 			slug: "decade",
-			name: "My Decade in Review",
+			title: "My Decade in Review",
 			flavorText: "A personal reflection.",
-			date: new Date().toISOString(),
+			published_at: new Date().toISOString(),
 		},
 		{
 			slug: "react-principles",
-			name: "What Are the React Team Principles?",
+			title: "What Are the React Team Principles?",
 			flavorText: "UI Before API.",
-			date: new Date().toISOString(),
+			published_at: new Date().toISOString(),
 		},
 	]
 }
