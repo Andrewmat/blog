@@ -1,10 +1,10 @@
-"use server"
 import { readdir } from "fs/promises"
 import { resolve } from "path"
 import { NextRequest, NextResponse } from "next/server"
-import { compileMDX } from "next-mdx-remote/rsc"
 import { CONTENT_BASE_PATH } from "../constants"
-import { getContent } from "../[slug]/api/route"
+import { getPostFull } from "../[slug]/api/route"
+import * as NetworkError from "~/app/errors/network"
+import { toNextResponse } from "~/app/errors/nextjs"
 
 type Context = {
 	params: {
@@ -17,7 +17,6 @@ export async function GET(
 	request: NextRequest,
 	context: Context
 ) {
-	console.log({ context })
 	const limit = (() => {
 		const value = Number(context.params?.limit)
 		return isNaN(value) ? 5 : value
@@ -26,71 +25,42 @@ export async function GET(
 		const value = Number(context.params?.offset)
 		return isNaN(value) ? 0 : value
 	})()
-	const { data, status } = await getPostList({
-		limit,
-		offset,
-	})
-	if (status !== 200) {
-		return new NextResponse(null, { status })
+	try {
+		const data = await getPostList({
+			limit,
+			offset,
+		})
+		return NextResponse.json(data)
+	} catch (error) {
+		if (error instanceof NetworkError.Base) {
+			return toNextResponse(error)
+		}
 	}
-	return NextResponse.json(data)
 }
 
 export async function getPostList(params: {
 	offset: number
 	limit: number
 }) {
-	const { data, status } = await getSlugList()
-	if (status !== 200 || data == null) {
-		return { data: undefined, status }
-	}
+	const data = await getSlugList()
 	try {
 		const pageSlugs = data.slice(
 			params.offset,
 			params.offset + params.limit
 		)
-		const sources = (
-			await Promise.all(
-				pageSlugs.map((slug) => getContent(slug))
-			)
-		).map(
-			(content) =>
-				content.data as NonNullable<typeof content.data>
+
+		return await Promise.all(
+			pageSlugs.map((fileName) => getPostFull(fileName))
 		)
-
-		const meta = (
-			await Promise.all(
-				sources.map((source) =>
-					compileMDX<{
-						title?: string
-						published?: boolean
-						published_at?: string
-						flavor_text?: string
-					}>({
-						source,
-						options: {
-							parseFrontmatter: true,
-						},
-					})
-				)
+	} catch (error) {
+		if (error instanceof NetworkError.Base) {
+			const generalError = new NetworkError.ServerError(
+				`Fetching data from posts`
 			)
-		).map((r, i) => {
-			return {
-				...r.frontmatter,
-				slug: pageSlugs[i],
-			}
-		})
-
-		return {
-			data: meta,
-			status: 200,
+			generalError.cause = error
+			throw generalError
 		}
-	} catch (err) {
-		return {
-			data: undefined,
-			status: 500,
-			statusText: err?.message as string | undefined,
-		}
+		throw error
 	}
 }
 
@@ -105,11 +75,10 @@ export async function getSlugList() {
 			.map((file) => {
 				return file.split(".").slice(0, -1).join(".")
 			})
-		return { data, status: 200 }
-	} catch (err) {
-		return {
-			data: undefined,
-			status: 500,
-		}
+		return data
+	} catch (error) {
+		throw new NetworkError.ServerError(
+			error instanceof Error ? error.message : undefined
+		)
 	}
 }

@@ -1,6 +1,6 @@
-import { compileMDX } from "next-mdx-remote/rsc"
 import { notFound } from "next/navigation"
-import { getContent } from "./api/route"
+import { getPostFull as getPostFullOriginal } from "./api/route"
+import * as NetworkError from "~/app/errors/network"
 
 type PageProps = {
 	params: {
@@ -11,30 +11,30 @@ type PageProps = {
 export default async function PostSlugPage({
 	params,
 }: PageProps) {
-	const { data, status } = await getContent(params.slug)
-	if (status === 404 || data == undefined) {
-		notFound()
-	}
-
-	const { frontmatter, content } = await compileMDX<{
-		title?: string
-	}>({
-		source: data,
-		options: {
-			parseFrontmatter: true,
-		},
-	})
+	const data = await getPostFull(params.slug)
 
 	return (
 		<>
-			<article>
+			<article className="blog-center">
 				<header>
 					<h1 className="font-bold pb-2 text-2xl">
-						{frontmatter.title}
+						{data.title}
 					</h1>
 				</header>
-				<div>{content}</div>
+				<div>{data.content}</div>
 			</article>
 		</>
 	)
+}
+
+async function getPostFull(slug: string) {
+	try {
+		return await getPostFullOriginal(slug)
+	} catch (error) {
+		if (error instanceof NetworkError.NotFoundError) {
+			notFound()
+		} else {
+			throw error
+		}
+	}
 }

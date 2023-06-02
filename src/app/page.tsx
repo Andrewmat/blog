@@ -2,6 +2,7 @@ import Link from "next/link"
 import { format as formatDate } from "date-fns"
 import { Fragment } from "react"
 import { getPostList } from "./posts/api/route"
+import * as NetworkError from "~/app/errors/network"
 
 type Props = {
 	params: {
@@ -21,14 +22,10 @@ export default async function HomePage(props: Props) {
 		const value = Number(props.params.offset)
 		return isNaN(value) ? 0 : value
 	})()
-	const { data: posts, status } = await getPostList({
+	const posts = await getPostList({
 		limit,
 		offset,
 	})
-
-	if (status !== 200 || posts == null) {
-		throw new Error(`Could not load post data`)
-	}
 
 	return (
 		<>
@@ -65,12 +62,14 @@ function Post({ post }: { post: PostHome }) {
 					<h2 className="text-2xl font-bold text-rose-300">
 						{post.title}
 					</h2>
-					<small className="text-sm italic text-gray-200">
-						{formatDate(
-							new Date(post.published_at),
-							"d MMM yyyy"
-						)}
-					</small>
+					{post.published_at && (
+						<small className="text-sm italic text-gray-200">
+							{formatDate(
+								new Date(post.published_at),
+								"d MMM yyyy"
+							)}
+						</small>
+					)}
 				</header>
 				<p>{post.flavor_text}</p>
 			</Link>
@@ -81,50 +80,6 @@ function Post({ post }: { post: PostHome }) {
 type PostHome = {
 	slug: string
 	title: string
-	flavor_text: string
+	flavorText: string
 	published_at: string
-}
-
-async function getPosts(): Promise<PostHome[]> {
-	return [
-		{
-			slug: "npm-audit",
-			title: "npm audit: Broken by Design",
-			flavorText:
-				"Found 99 vulnerabilities (84 moderately irrelevant, 15 highly irrelevant)",
-			published_at: new Date().toISOString(),
-		},
-		{
-			slug: "memo",
-			title: "Before You memo()",
-			flavorText:
-				"Rendering optimizations that come naturally.",
-			published_at: new Date().toISOString(),
-		},
-		{
-			slug: "wet",
-			title: "The WET Codebase",
-			flavorText: "Come waste your time with me.",
-			published_at: new Date().toISOString(),
-		},
-		{
-			slug: "clean-code",
-			title: "Goodbye, Clean Code",
-			flavorText:
-				"Let clean code guide you. Then let it go.",
-			published_at: new Date().toISOString(),
-		},
-		{
-			slug: "decade",
-			title: "My Decade in Review",
-			flavorText: "A personal reflection.",
-			published_at: new Date().toISOString(),
-		},
-		{
-			slug: "react-principles",
-			title: "What Are the React Team Principles?",
-			flavorText: "UI Before API.",
-			published_at: new Date().toISOString(),
-		},
-	]
 }

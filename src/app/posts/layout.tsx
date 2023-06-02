@@ -1,25 +1,25 @@
-import { getSlugList } from "./api/route"
+import { getPostList } from "./api/route"
 import NavLink from "../_ui/Link/NavLink"
+import { treatNotFound } from "../errors/nextjs"
 
 export default async function PostListPage({
 	children,
 }: React.PropsWithChildren) {
-	const { data, status } = await getSlugList()
-
-	if (status !== 200 || data == null) {
-		throw new Error(`Could not find slug list`)
-	}
-
-	const slugList = data
+	const postList = await treatNotFound(
+		getPostList({
+			offset: 0,
+			limit: 5,
+		})
+	)
 
 	return (
 		<div>
 			<NavLink href="/posts">List</NavLink>
-			<ul>
-				{slugList?.map((slug) => (
-					<li key={slug}>
-						<NavLink href={`/posts/${slug}`}>
-							{slug}
+			<ul className="list-disc list-inside">
+				{postList?.map((post) => (
+					<li key={post.slug}>
+						<NavLink href={`/posts/${post.slug}`}>
+							{post.title}
 						</NavLink>
 					</li>
 				))}
