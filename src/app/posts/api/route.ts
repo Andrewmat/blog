@@ -1,10 +1,9 @@
-import { readdir } from "fs/promises"
-import { resolve } from "path"
 import { NextRequest, NextResponse } from "next/server"
-import { CONTENT_BASE_PATH } from "../constants"
-import { getPostFull } from "../[slug]/api/route"
-import * as NetworkError from "~/app/errors/network"
-import { toNextResponse } from "~/app/errors/nextjs"
+import { NetworkError } from "~/errors/network"
+import { toNextResponse } from "~/errors/nextjs"
+import { getPostList } from "../getPost"
+import checkAuthServer from "~/app/auth/checkAuthServer"
+import compilePostText from "../compilePostText"
 
 type Context = {
 	params: {
@@ -25,6 +24,7 @@ export async function GET(
 		const value = Number(context.params?.offset)
 		return isNaN(value) ? 0 : value
 	})()
+
 	try {
 		const data = await getPostList({
 			limit,
@@ -32,53 +32,32 @@ export async function GET(
 		})
 		return NextResponse.json(data)
 	} catch (error) {
-		if (error instanceof NetworkError.Base) {
+		if (error instanceof NetworkError.BaseError) {
 			return toNextResponse(error)
 		}
 	}
 }
 
-export async function getPostList(params: {
-	offset: number
-	limit: number
-}) {
-	const data = await getSlugList()
-	try {
-		const pageSlugs = data.slice(
-			params.offset,
-			params.offset + params.limit
-		)
+export async function POST(request: NextRequest) {
+	const { error } = await checkAuthServer()
+	if (error) {
+		return error
+	}
 
-		return await Promise.all(
-			pageSlugs.map((fileName) => getPostFull(fileName))
-		)
-	} catch (error) {
-		if (error instanceof NetworkError.Base) {
-			const generalError = new NetworkError.ServerError(
-				`Fetching data from posts`
+	const post = await compilePostText(await request.text())
+
+	if (!post.title) {
+		return toNextResponse(
+			new NetworkError.UnprocessableContentError(
+				"No title given to published post"
 			)
-			generalError.cause = error
-			throw generalError
-		}
-		throw error
-	}
-}
-
-export async function getSlugList() {
-	try {
-		const dir = await readdir(resolve(CONTENT_BASE_PATH))
-		const data = dir
-			.filter((file) => {
-				const extension = file.split(".").at(-1)
-				return extension === "mdx"
-			})
-			.map((file) => {
-				return file.split(".").slice(0, -1).join(".")
-			})
-		return data
-	} catch (error) {
-		throw new NetworkError.ServerError(
-			error instanceof Error ? error.message : undefined
 		)
 	}
+
+	if (!post.slug)
+		post.slug = post.title.toLowerCase().replace(" ", "+")
+
+	return NextResponse.json({
+		message: `Created post with slug ${post.slug}`,
+	})
 }

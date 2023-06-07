@@ -1,6 +1,6 @@
+import { NetworkError } from "~/errors/network"
+import { getPost as getPostOriginal } from "../getPost.client"
 import { notFound } from "next/navigation"
-import { getPostFull as getPostFullOriginal } from "./api/route"
-import * as NetworkError from "~/app/errors/network"
 
 type PageProps = {
 	params: {
@@ -11,13 +11,15 @@ type PageProps = {
 export default async function PostSlugPage({
 	params,
 }: PageProps) {
-	const data = await getPostFull(params.slug)
-
+	const data = await getPost(params.slug)
+	if (!data) {
+		notFound()
+	}
 	return (
 		<>
 			<article className="blog-center">
 				<header>
-					<h1 className="font-bold pb-2 text-2xl">
+					<h1 className="font-bold mb-8 text-4xl text-center">
 						{data.title}
 					</h1>
 				</header>
@@ -27,14 +29,12 @@ export default async function PostSlugPage({
 	)
 }
 
-async function getPostFull(slug: string) {
+async function getPost(slug: string) {
 	try {
-		return await getPostFullOriginal(slug)
+		return await getPostOriginal(slug)
 	} catch (error) {
 		if (error instanceof NetworkError.NotFoundError) {
-			notFound()
-		} else {
-			throw error
-		}
+			return undefined
+		} else throw error
 	}
 }

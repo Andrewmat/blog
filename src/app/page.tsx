@@ -1,8 +1,10 @@
 import Link from "next/link"
 import { format as formatDate } from "date-fns"
 import { Fragment } from "react"
-import { getPostList } from "./posts/api/route"
-import * as NetworkError from "~/app/errors/network"
+import { getPostList } from "./posts/getPost.client"
+import { PostData } from "./posts/type"
+import { NetworkError } from "~/errors/network"
+import { notFound } from "next/navigation"
 
 type Props = {
 	params: {
@@ -12,8 +14,6 @@ type Props = {
 }
 
 export default async function HomePage(props: Props) {
-	// const posts = await getPosts()
-
 	const limit = (() => {
 		const value = Number(props.params.limit)
 		return isNaN(value) ? 5 : value
@@ -22,10 +22,15 @@ export default async function HomePage(props: Props) {
 		const value = Number(props.params.offset)
 		return isNaN(value) ? 0 : value
 	})()
+
 	const posts = await getPostList({
 		limit,
 		offset,
 	})
+
+	if (posts instanceof NetworkError.NotFoundError) {
+		notFound()
+	}
 
 	return (
 		<>
@@ -50,36 +55,28 @@ export default async function HomePage(props: Props) {
 	)
 }
 
-function Post({ post }: { post: PostHome }) {
+function Post({ post }: { post: PostData }) {
 	return (
 		<article className="-mx-4">
 			<Link
 				href={`/posts/${post.slug}`}
-				// className="px-4 py-2 block border border-transparent hover:border-white/20 hover:shadow hover:shadow-white/10 rounded-md"
 				className="p-4 block transition-shadow hover:bg-white/5 hover:shadow hover:shadow-white/5"
 			>
 				<header className="mb-2">
 					<h2 className="text-2xl font-bold text-rose-300">
 						{post.title}
 					</h2>
-					{post.published_at && (
+					{post.publishedAt && (
 						<small className="text-sm italic text-gray-200">
 							{formatDate(
-								new Date(post.published_at),
+								new Date(post.publishedAt),
 								"d MMM yyyy"
 							)}
 						</small>
 					)}
 				</header>
-				<p>{post.flavor_text}</p>
+				<p>{post.flavorText}</p>
 			</Link>
 		</article>
 	)
-}
-
-type PostHome = {
-	slug: string
-	title: string
-	flavorText: string
-	published_at: string
 }
