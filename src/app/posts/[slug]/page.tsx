@@ -1,6 +1,7 @@
 import { NetworkError } from "~/errors/network"
 import { getPost as getPostOriginal } from "../getPost.client"
 import { notFound } from "next/navigation"
+import "highlight.js/styles/atom-one-dark.css"
 
 type PageProps = {
 	params: {

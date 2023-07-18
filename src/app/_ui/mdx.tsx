@@ -9,10 +9,13 @@ const components = {
 		<hr className="w-1/2 mx-auto border-rose-300/20 my-4 border-2" />
 	),
 	pre: joinClassName(
-		<pre className="w-5/6 mx-auto my-8 bg-slate-900 px-6 py-4 rounded-md" />
+		<pre className="w-5/6 mx-auto my-8 bg-[#282c34] px-6 py-4 rounded-md" />
+	),
+	code: joinClassName(
+		<code className="inline-block bg-[#282c34] px-0.5 -mx-0.5 rounded-sm text-[#abb2bf]" />
 	),
 	blockquote: joinClassName(
-		<blockquote className="border-l-8 border-l-gray-400 px-4 mt-4 bg-black/40 rounded-md flex" />
+		<blockquote className="border-l-8 border-l-gray-400 px-4 mt-4 bg-white/20 rounded-md flex" />
 	),
 }
 

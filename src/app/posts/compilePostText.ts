@@ -1,4 +1,5 @@
 import { compileMDX } from "next-mdx-remote/rsc"
+import rehypeHighlight from "rehype-highlight"
 import components from "~/app/_ui/mdx"
 import {
 	PostContent,
@@ -14,6 +15,9 @@ export default async function compilePostText(
 		components,
 		options: {
 			parseFrontmatter: true,
+			mdxOptions: {
+				rehypePlugins: [rehypeHighlight],
+			},
 		},
 	})
 
